@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtGui, QtWidgets
 from requests import post
 import urllib.request
 from configparser import ConfigParser
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtWidgets import (
+    QMainWindow,
+    QApplication,
+    QLabel,
+    QPushButton,
+    QWidget,
+    QMessageBox,
+)
 
 
-class CaptchaSolver(QtWidgets.QMainWindow):
+class CaptchaSolver(QMainWindow):
     def __init__(self):
         super().__init__()
         self.conf = ConfigParser()
@@ -13,18 +21,18 @@ class CaptchaSolver(QtWidgets.QMainWindow):
         self.conf.read('conf.ini')
         self.__check_api_key__()
 
-        self.centralwidget = QtWidgets.QWidget(self)
-        self.title = QtWidgets.QLabel(self.centralwidget)
-        self.next = QtWidgets.QPushButton(self.centralwidget)
-        self.picture_1 = QtWidgets.QLabel(self.centralwidget)
-        self.picture_2 = QtWidgets.QLabel(self.centralwidget)
-        self.picture_3 = QtWidgets.QLabel(self.centralwidget)
-        self.picture_4 = QtWidgets.QLabel(self.centralwidget)
-        self.picture_5 = QtWidgets.QLabel(self.centralwidget)
-        self.picture_6 = QtWidgets.QLabel(self.centralwidget)
-        self.picture_7 = QtWidgets.QLabel(self.centralwidget)
-        self.picture_8 = QtWidgets.QLabel(self.centralwidget)
-        self.picture_9 = QtWidgets.QLabel(self.centralwidget)
+        self.centralwidget = QWidget(self)
+        self.title = QLabel(self.centralwidget)
+        self.next = QPushButton(self.centralwidget)
+        self.picture_1 = QLabel(self.centralwidget)
+        self.picture_2 = QLabel(self.centralwidget)
+        self.picture_3 = QLabel(self.centralwidget)
+        self.picture_4 = QLabel(self.centralwidget)
+        self.picture_5 = QLabel(self.centralwidget)
+        self.picture_6 = QLabel(self.centralwidget)
+        self.picture_7 = QLabel(self.centralwidget)
+        self.picture_8 = QLabel(self.centralwidget)
+        self.picture_9 = QLabel(self.centralwidget)
         self.pictures = [self.picture_1, self.picture_2, self.picture_3,
                          self.picture_4, self.picture_5, self.picture_6,
                          self.picture_7, self.picture_8, self.picture_9]
@@ -38,7 +46,7 @@ class CaptchaSolver(QtWidgets.QMainWindow):
         self.setCentralWidget(self.centralwidget)
         self.setWindowTitle('reCAPTCHA')
         self.setWindowIcon(QtGui.QIcon('icon.ico'))
-        self.resize(330, 480)
+        self.resize(330, 500)
         self.title.setGeometry(QtCore.QRect(20, 10, 290, 60))
         self.next.setGeometry(QtCore.QRect(20, 400, 290, 60))
         self.picture_1.setGeometry(QtCore.QRect(20, 100, 90, 90))
@@ -52,15 +60,15 @@ class CaptchaSolver(QtWidgets.QMainWindow):
         self.picture_9.setGeometry(QtCore.QRect(220, 300, 90, 90))
 
         self.next.clicked.connect(self.click_next)
-        self.picture_1.mousePressEvent = self.click_pic_1
-        self.picture_2.mousePressEvent = self.click_pic_2
-        self.picture_3.mousePressEvent = self.click_pic_3
-        self.picture_4.mousePressEvent = self.click_pic_4
-        self.picture_5.mousePressEvent = self.click_pic_5
-        self.picture_6.mousePressEvent = self.click_pic_6
-        self.picture_7.mousePressEvent = self.click_pic_7
-        self.picture_8.mousePressEvent = self.click_pic_8
-        self.picture_9.mousePressEvent = self.click_pic_9
+        self.picture_1.mousePressEvent = lambda event: self.__handle_picture_click__(0)
+        self.picture_2.mousePressEvent = lambda event: self.__handle_picture_click__(1)
+        self.picture_3.mousePressEvent = lambda event: self.__handle_picture_click__(2)
+        self.picture_4.mousePressEvent = lambda event: self.__handle_picture_click__(3)
+        self.picture_5.mousePressEvent = lambda event: self.__handle_picture_click__(4)
+        self.picture_6.mousePressEvent = lambda event: self.__handle_picture_click__(5)
+        self.picture_7.mousePressEvent = lambda event: self.__handle_picture_click__(6)
+        self.picture_8.mousePressEvent = lambda event: self.__handle_picture_click__(7)
+        self.picture_9.mousePressEvent = lambda event: self.__handle_picture_click__(8)
 
         self.title.setStyleSheet('font: 30pt Calibri')
         self.title.setAlignment(QtCore.Qt.AlignCenter)
@@ -69,40 +77,13 @@ class CaptchaSolver(QtWidgets.QMainWindow):
         self.next.setText('Next')
         self.next.setShortcut('Space')
 
-        self.__refresh_captcha__()
+        self.__load_captcha__()
 
     # ------------------------ Click methods ------------------------
-    def click_pic_1(self, event):
-        self.__handle_picture_click__(0)
-
-    def click_pic_2(self, event):
-        self.__handle_picture_click__(1)
-
-    def click_pic_3(self, event):
-        self.__handle_picture_click__(2)
-
-    def click_pic_4(self, event):
-        self.__handle_picture_click__(3)
-
-    def click_pic_5(self, event):
-        self.__handle_picture_click__(4)
-
-    def click_pic_6(self, event):
-        self.__handle_picture_click__(5)
-
-    def click_pic_7(self, event):
-        self.__handle_picture_click__(6)
-
-    def click_pic_8(self, event):
-        self.__handle_picture_click__(7)
-
-    def click_pic_9(self, event):
-        self.__handle_picture_click__(8)
-
     def click_next(self):
         if sum(self.clicked_pictures) == 3:
             self.__submit_captcha__()
-            self.__refresh_captcha__()
+            self.__load_captcha__()
 
     # ----------------------- Private methods -----------------------
     def __handle_picture_click__(self, pic_id):
@@ -113,7 +94,7 @@ class CaptchaSolver(QtWidgets.QMainWindow):
         self.clicked_pictures[pic_id] = not self.clicked_pictures[pic_id]
 
     def __submit_captcha__(self):
-        res = post(self.conf['srv']['path'] + '/picture/submit', json={'id': self.current_captcha_data['id'], 'correct_pics': self.clicked_pictures})
+        res = post(self.conf['solver']['path'] + '/picture/submit', json={'id': self.current_captcha_data['id'], 'correct_pics': self.clicked_pictures})
         if res.status_code != 200:
             self.__error_msg__('Server error', 'Internal server error. Pleas check server log.')
 
@@ -121,8 +102,8 @@ class CaptchaSolver(QtWidgets.QMainWindow):
         for i in self.pictures:
             i.setStyleSheet("")
 
-    def __refresh_captcha__(self):
-        res = post(self.conf['srv']['path'] + '/picture/get', json={'typ': self.conf.getint('user', 'typ')})
+    def __load_captcha__(self):
+        res = post(self.conf['solver']['path'] + '/picture/get', json={'typ': self.conf['solver']['typ']})
         if res.status_code != 200:
             self.__error_msg__('Server error', 'Internal server error. Pleas check server log.')
         if res.json()['data']['id'] == -1:
@@ -131,15 +112,15 @@ class CaptchaSolver(QtWidgets.QMainWindow):
         self.current_captcha_data = res.json()['data']
         self.title.setText(self.current_captcha_data['titel'])
         for i, j in zip(self.current_captcha_data['pics'], self.pictures):
-            print(i)
-            data = urllib.request.urlopen(i).read()
+            print(self.conf['solver']['path'] + i)
+            data = urllib.request.urlopen(self.conf['solver']['path'] + i).read()
             image = QtGui.QImage()
             image.loadFromData(data)
             j.setPixmap(QtGui.QPixmap(image))
 
     def __error_msg__(self, title, text):
-        msg = QtWidgets.QMessageBox()
-        msg.setIcon(QtWidgets.QMessageBox.Critical)
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
         msg.setText(title)
         msg.setInformativeText(text)
         msg.setWindowTitle("Error")
@@ -147,13 +128,13 @@ class CaptchaSolver(QtWidgets.QMainWindow):
         quit()
 
     def __check_api_key__(self):
-        res = post(self.conf['srv']['path'] + '/api-key', json={'key': self.conf['srv']['key']})
+        res = post(self.conf['solver']['path'] + '/api-key', json={'key': self.conf['solver']['key']})
         if not res.json()['verified']:
             self.__error_msg__('Wrong API key', 'Your API key got rejected. Pleas provide a verified key.')
 
 
 if __name__ == '__main__':
     import sys
-    app = QtWidgets.QApplication(sys.argv)
+    app = QApplication(sys.argv)
     ui = CaptchaSolver()
     sys.exit(app.exec_())
