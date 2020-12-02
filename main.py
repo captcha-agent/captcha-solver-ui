@@ -2,6 +2,7 @@
 from requests import post
 import urllib.request
 from configparser import ConfigParser
+from os import system
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -10,6 +11,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QWidget,
     QMessageBox,
+    QAction,
 )
 
 
@@ -43,6 +45,15 @@ class CaptchaSolver(QMainWindow):
         self.show()
 
     def setup_ui(self):
+        exit_act = QAction('&Get new Images', self)
+        exit_act.setStatusTip('Downloads Captchas (Use with Hotspot)')
+        exit_act.triggered.connect(lambda: system("start cmd /k GetData.exe"))
+
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu('File')
+        file_menu.addAction(exit_act)
+
+        self.statusBar().show()
         self.setCentralWidget(self.centralwidget)
         self.setWindowTitle('reCAPTCHA')
         self.setWindowIcon(QtGui.QIcon('icon.ico'))
@@ -94,7 +105,7 @@ class CaptchaSolver(QMainWindow):
         self.clicked_pictures[pic_id] = not self.clicked_pictures[pic_id]
 
     def __submit_captcha__(self):
-        res = post(self.conf['solver']['path'] + '/picture/submit', json={'id': self.current_captcha_data['id'], 'correct_pics': self.clicked_pictures})
+        res = post(self.conf['server']['path'] + '/picture/submit', json={'id': self.current_captcha_data['id'], 'correct_pics': self.clicked_pictures})
         if res.status_code != 200:
             self.__error_msg__('Server error', 'Internal server error. Pleas check server log.')
 
@@ -103,7 +114,7 @@ class CaptchaSolver(QMainWindow):
             i.setStyleSheet("")
 
     def __load_captcha__(self):
-        res = post(self.conf['solver']['path'] + '/picture/get', json={'typ': self.conf['solver']['typ']})
+        res = post(self.conf['server']['path'] + '/picture/get', json={'typ': self.conf['solver']['typ']})
         if res.status_code != 200:
             self.__error_msg__('Server error', 'Internal server error. Pleas check server log.')
         if res.json()['data']['id'] == -1:
@@ -112,8 +123,8 @@ class CaptchaSolver(QMainWindow):
         self.current_captcha_data = res.json()['data']
         self.title.setText(self.current_captcha_data['titel'])
         for i, j in zip(self.current_captcha_data['pics'], self.pictures):
-            print(self.conf['solver']['path'] + i)
-            data = urllib.request.urlopen(self.conf['solver']['path'] + i).read()
+            print(self.conf['server']['path'] + i)
+            data = urllib.request.urlopen(self.conf['server']['path'] + i).read()
             image = QtGui.QImage()
             image.loadFromData(data)
             j.setPixmap(QtGui.QPixmap(image))
@@ -128,7 +139,7 @@ class CaptchaSolver(QMainWindow):
         quit()
 
     def __check_api_key__(self):
-        res = post(self.conf['solver']['path'] + '/api-key', json={'key': self.conf['solver']['key']})
+        res = post(self.conf['server']['path'] + '/api-key', json={'key': self.conf['server']['key']})
         if not res.json()['verified']:
             self.__error_msg__('Wrong API key', 'Your API key got rejected. Pleas provide a verified key.')
 
