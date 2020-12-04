@@ -49,11 +49,15 @@ class CaptchaSolver(QMainWindow):
         menu_file_reload_config = QAction('&Reload config', self)
         menu_file_reload_config.setStatusTip('Reloads config file')
         menu_file_reload_config.triggered.connect(self.__load_conf__)
+        menu_file_exit = QAction('&Exit', self)
+        menu_file_exit.setStatusTip('Exit application')
+        menu_file_exit.triggered.connect(qApp.quit)
 
         menubar = self.menuBar()
         menu_file = menubar.addMenu('File')
         menu_file.addAction(menu_file_get_new_image)
         menu_file.addAction(menu_file_reload_config)
+        menu_file.addAction(menu_file_exit)
 
         self.statusBar().show()
         self.setCentralWidget(self.centralwidget)
