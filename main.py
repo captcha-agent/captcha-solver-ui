@@ -12,17 +12,13 @@ from PyQt5.QtWidgets import (
     QWidget,
     QMessageBox,
     QAction,
+    qApp,
 )
 
 
 class CaptchaSolver(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.conf = ConfigParser()
-        self.conf.sections()
-        self.conf.read('conf.ini')
-        self.__check_api_key__()
-
         self.centralwidget = QWidget(self)
         self.title = QLabel(self.centralwidget)
         self.next = QPushButton(self.centralwidget)
@@ -41,17 +37,23 @@ class CaptchaSolver(QMainWindow):
 
         self.clicked_pictures = [False] * 9
         self.current_captcha_data = ()
+
+        self.__load_conf__(True)
         self.setup_ui()
         self.show()
 
     def setup_ui(self):
-        exit_act = QAction('&Get new Images', self)
-        exit_act.setStatusTip('Downloads Captchas (Use with Hotspot)')
-        exit_act.triggered.connect(lambda: system("start cmd /k GetData.exe"))
+        menu_file_get_new_image = QAction('&Get new Images', self)
+        menu_file_get_new_image.setStatusTip('Downloads Captchas (Use with Hotspot)')
+        menu_file_get_new_image.triggered.connect(lambda: system("start cmd /k GetData.exe"))
+        menu_file_reload_config = QAction('&Reload config', self)
+        menu_file_reload_config.setStatusTip('Reloads config file')
+        menu_file_reload_config.triggered.connect(self.__load_conf__)
 
         menubar = self.menuBar()
-        file_menu = menubar.addMenu('File')
-        file_menu.addAction(exit_act)
+        menu_file = menubar.addMenu('File')
+        menu_file.addAction(menu_file_get_new_image)
+        menu_file.addAction(menu_file_reload_config)
 
         self.statusBar().show()
         self.setCentralWidget(self.centralwidget)
@@ -108,7 +110,9 @@ class CaptchaSolver(QMainWindow):
         res = post(self.conf['server']['path'] + '/picture/submit', json={'id': self.current_captcha_data['id'], 'correct_pics': self.clicked_pictures})
         if res.status_code != 200:
             self.__error_msg__('Server error', 'Internal server error. Pleas check server log.')
+        self.__reset_view__()
 
+    def __reset_view__(self):
         self.clicked_pictures = [False] * 9
         for i in self.pictures:
             i.setStyleSheet("")
@@ -142,6 +146,18 @@ class CaptchaSolver(QMainWindow):
         res = post(self.conf['server']['path'] + '/api-key', json={'key': self.conf['server']['key']})
         if not res.json()['verified']:
             self.__error_msg__('Wrong API key', 'Your API key got rejected. Pleas provide a verified key.')
+
+
+
+    def __load_conf__(self, first=False):
+        self.conf = ConfigParser()
+        self.conf.sections()
+        self.conf.read('conf.ini')
+        self.__check_api_key__()
+        if not first:
+            self.__reset_view__()
+            self.__load_captcha__()
+
 
 
 if __name__ == '__main__':
