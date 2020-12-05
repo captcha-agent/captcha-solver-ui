@@ -22,20 +22,11 @@ class CaptchaSolver(QMainWindow):
         self.centralwidget = QWidget(self)
         self.title = QLabel(self.centralwidget)
         self.next = QPushButton(self.centralwidget)
-        self.picture_1 = QLabel(self.centralwidget)
-        self.picture_2 = QLabel(self.centralwidget)
-        self.picture_3 = QLabel(self.centralwidget)
-        self.picture_4 = QLabel(self.centralwidget)
-        self.picture_5 = QLabel(self.centralwidget)
-        self.picture_6 = QLabel(self.centralwidget)
-        self.picture_7 = QLabel(self.centralwidget)
-        self.picture_8 = QLabel(self.centralwidget)
-        self.picture_9 = QLabel(self.centralwidget)
-        self.pictures = [self.picture_1, self.picture_2, self.picture_3,
-                         self.picture_4, self.picture_5, self.picture_6,
-                         self.picture_7, self.picture_8, self.picture_9]
+        self.pictures = [QLabel(self.centralwidget), QLabel(self.centralwidget), QLabel(self.centralwidget),
+                         QLabel(self.centralwidget), QLabel(self.centralwidget), QLabel(self.centralwidget),
+                         QLabel(self.centralwidget), QLabel(self.centralwidget), QLabel(self.centralwidget)]
 
-        self.clicked_pictures = [False] * 9
+        self.pictures_clicked = [False] * 9
         self.current_captcha_data = ()
 
         self.__load_conf__(True)
@@ -66,26 +57,19 @@ class CaptchaSolver(QMainWindow):
         self.resize(330, 500)
         self.title.setGeometry(QtCore.QRect(20, 10, 290, 60))
         self.next.setGeometry(QtCore.QRect(20, 400, 290, 60))
-        self.picture_1.setGeometry(QtCore.QRect(20, 100, 90, 90))
-        self.picture_2.setGeometry(QtCore.QRect(120, 100, 90, 90))
-        self.picture_3.setGeometry(QtCore.QRect(220, 100, 90, 90))
-        self.picture_4.setGeometry(QtCore.QRect(20, 200, 90, 90))
-        self.picture_5.setGeometry(QtCore.QRect(120, 200, 90, 90))
-        self.picture_6.setGeometry(QtCore.QRect(220, 200, 90, 90))
-        self.picture_7.setGeometry(QtCore.QRect(20, 300, 90, 90))
-        self.picture_8.setGeometry(QtCore.QRect(120, 300, 90, 90))
-        self.picture_9.setGeometry(QtCore.QRect(220, 300, 90, 90))
+        self.pictures[0].setGeometry(QtCore.QRect(20, 100, 90, 90))
+        self.pictures[1].setGeometry(QtCore.QRect(120, 100, 90, 90))
+        self.pictures[2].setGeometry(QtCore.QRect(220, 100, 90, 90))
+        self.pictures[3].setGeometry(QtCore.QRect(20, 200, 90, 90))
+        self.pictures[4].setGeometry(QtCore.QRect(120, 200, 90, 90))
+        self.pictures[5].setGeometry(QtCore.QRect(220, 200, 90, 90))
+        self.pictures[6].setGeometry(QtCore.QRect(20, 300, 90, 90))
+        self.pictures[7].setGeometry(QtCore.QRect(120, 300, 90, 90))
+        self.pictures[8].setGeometry(QtCore.QRect(220, 300, 90, 90))
 
         self.next.clicked.connect(self.click_next)
-        self.picture_1.mousePressEvent = lambda event: self.__handle_picture_click__(0)
-        self.picture_2.mousePressEvent = lambda event: self.__handle_picture_click__(1)
-        self.picture_3.mousePressEvent = lambda event: self.__handle_picture_click__(2)
-        self.picture_4.mousePressEvent = lambda event: self.__handle_picture_click__(3)
-        self.picture_5.mousePressEvent = lambda event: self.__handle_picture_click__(4)
-        self.picture_6.mousePressEvent = lambda event: self.__handle_picture_click__(5)
-        self.picture_7.mousePressEvent = lambda event: self.__handle_picture_click__(6)
-        self.picture_8.mousePressEvent = lambda event: self.__handle_picture_click__(7)
-        self.picture_9.mousePressEvent = lambda event: self.__handle_picture_click__(8)
+        for i in range(len(self.pictures)):
+            self.pictures[i].mousePressEvent = lambda event, j=i: self.__handle_picture_click__(j)
 
         self.title.setStyleSheet('font: 30pt Calibri')
         self.title.setAlignment(QtCore.Qt.AlignCenter)
@@ -98,26 +82,24 @@ class CaptchaSolver(QMainWindow):
 
     # ------------------------ Click methods ------------------------
     def click_next(self):
-        if sum(self.clicked_pictures) == 3:
+        if sum(self.pictures_clicked) == 3:
             self.__submit_captcha__()
             self.__load_captcha__()
 
     # ----------------------- Private methods -----------------------
     def __handle_picture_click__(self, pic_id):
-        if not self.clicked_pictures[pic_id]:
-            self.pictures[pic_id].setStyleSheet("border: 3px solid red;")
-        else:
-            self.pictures[pic_id].setStyleSheet("")
-        self.clicked_pictures[pic_id] = not self.clicked_pictures[pic_id]
+        self.pictures[pic_id].setStyleSheet('' if self.pictures_clicked[pic_id] else 'border: 3px solid red;')
+        self.pictures_clicked[pic_id] = not self.pictures_clicked[pic_id]
 
     def __submit_captcha__(self):
-        res = post(self.conf['server']['path'] + '/picture/submit', json={'id': self.current_captcha_data['id'], 'correct_pics': self.clicked_pictures})
+        res = post(self.conf['server']['path'] + '/picture/submit',
+                   json={'id': self.current_captcha_data['id'], 'correct_pics': self.pictures_clicked})
         if res.status_code != 200:
             self.__error_msg__('Server error', 'Internal server error. Pleas check server log.')
         self.__reset_view__()
 
     def __reset_view__(self):
-        self.clicked_pictures = [False] * 9
+        self.pictures_clicked = [False] * 9
         for i in self.pictures:
             i.setStyleSheet("")
 
@@ -151,8 +133,6 @@ class CaptchaSolver(QMainWindow):
         if not res.json()['verified']:
             self.__error_msg__('Wrong API key', 'Your API key got rejected. Pleas provide a verified key.')
 
-
-
     def __load_conf__(self, first=False):
         self.conf = ConfigParser()
         self.conf.sections()
@@ -163,9 +143,9 @@ class CaptchaSolver(QMainWindow):
             self.__load_captcha__()
 
 
-
 if __name__ == '__main__':
     import sys
+
     app = QApplication(sys.argv)
     ui = CaptchaSolver()
     sys.exit(app.exec_())
