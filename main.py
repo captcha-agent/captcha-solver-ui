@@ -3,6 +3,7 @@ from requests import post
 import urllib.request
 from configparser import ConfigParser
 from os import system
+from json import loads
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -12,7 +13,7 @@ from PyQt5.QtWidgets import (
     QWidget,
     QMessageBox,
     QAction,
-    qApp,
+    qApp
 )
 
 
@@ -29,8 +30,12 @@ class CaptchaSolver(QMainWindow):
         self.pictures_clicked = [False] * 9
         self.current_captcha_data = ()
 
+        with open('messages.json', 'r') as f:
+            self.messages = loads(f.read())['en']
+
         self.__load_conf__(True)
         self.setup_ui()
+        self.__load_captcha__()
         self.show()
 
     def setup_ui(self):
@@ -78,8 +83,6 @@ class CaptchaSolver(QMainWindow):
         self.next.setText('Next')
         self.next.setShortcut('Space')
 
-        self.__load_captcha__()
-
     # ------------------------ Click methods ------------------------
     def click_next(self):
         if sum(self.pictures_clicked) == 3:
@@ -95,7 +98,7 @@ class CaptchaSolver(QMainWindow):
         res = post(self.conf['server']['path'] + '/picture/submit',
                    json={'id': self.current_captcha_data['id'], 'correct_pics': self.pictures_clicked})
         if res.status_code != 200:
-            self.__error_msg__('Server error', 'Internal server error. Pleas check server log.')
+            self.__error_msg__('serverError')
         self.__reset_view__()
 
     def __reset_view__(self):
@@ -106,9 +109,9 @@ class CaptchaSolver(QMainWindow):
     def __load_captcha__(self):
         res = post(self.conf['server']['path'] + '/picture/get', json={'typ': self.conf['solver']['typ']})
         if res.status_code != 200:
-            self.__error_msg__('Server error', 'Internal server error. Pleas check server log.')
+            self.__error_msg__('serverError')
         if res.json()['data']['id'] == -1:
-            self.__error_msg__('No more Pictures', 'All pictures are solved. Pleas generate new ones.')
+            self.__error_msg__('noMoreCaptchas')
 
         self.current_captcha_data = res.json()['data']
         self.title.setText(self.current_captcha_data['titel'])
@@ -119,11 +122,11 @@ class CaptchaSolver(QMainWindow):
             image.loadFromData(data)
             j.setPixmap(QtGui.QPixmap(image))
 
-    def __error_msg__(self, title, text):
+    def __error_msg__(self, message):
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
-        msg.setText(title)
-        msg.setInformativeText(text)
+        msg.setText(self.messages[message][0])
+        msg.setInformativeText(self.messages[message][1])
         msg.setWindowTitle("Error")
         msg.exec_()
         quit()
@@ -131,7 +134,7 @@ class CaptchaSolver(QMainWindow):
     def __check_api_key__(self):
         res = post(self.conf['server']['path'] + '/api-key', json={'key': self.conf['server']['key']})
         if not res.json()['verified']:
-            self.__error_msg__('Wrong API key', 'Your API key got rejected. Pleas provide a verified key.')
+            self.__error_msg__('wrongAPIKey')
 
     def __load_conf__(self, first=False):
         self.conf = ConfigParser()

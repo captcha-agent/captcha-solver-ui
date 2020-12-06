@@ -1,0 +1,8 @@
+{
+  "en": {
+    "serverError": ["Server error", "Internal server error. Pleas check server log."],
+    "noMoreCaptchas": ["No more pictures", "All pictures are solved. Pleas generate new ones."],
+    "wrongAPIKey": ["Wrong API key", "Your API key got rejected. Pleas provide a verified key."],
+    "noInternetConnection": ["No internet connection", "You're not connected to the Internet. Pleas connect and restart."]
+  }
+}
