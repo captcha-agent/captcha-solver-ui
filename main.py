@@ -142,6 +142,35 @@ class CaptchaSolver(QMainWindow):
         self.conf.read('conf.ini')
         self.__check_api_key__()
         if not first:
+            self.__resecaptcha_data = res.json()['data']
+        self.title.setText(self.current_captcha_data['titel'])
+        for i, j in zip(self.current_captcha_data['pics'], self.pictures):
+            print(self.conf['server']['path'] + i)
+            data = urllib.request.urlopen(self.conf['server']['path'] + i).read()
+            image = QtGui.QImage()
+            image.loadFromData(data)
+            j.setPixmap(QtGui.QPixmap(image))
+
+    def __error_msg__(self, message):
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText(self.messages[message][0])
+        msg.setInformativeText(self.messages[message][1])
+        msg.setWindowTitle("Error")
+        msg.exec_()
+        quit()
+
+    def __check_api_key__(self):
+        res = post(self.conf['server']['path'] + '/api-key', json={'key': self.conf['server']['key']})
+        if not res.json()['verified']:
+            self.__error_msg__('wrongAPIKey')
+
+    def __load_conf__(self, first=False):
+        self.conf = ConfigParser()
+        self.conf.sections()
+        self.conf.read('conf.ini')
+        self.__check_api_key__()
+        if not first:
             self.__reset_view__()
             self.__load_captcha__()
 
